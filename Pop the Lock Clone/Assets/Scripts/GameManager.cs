@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using DG.Tweening;
 
 public class GameManager : MonoBehaviour {
 
@@ -24,23 +23,28 @@ public class GameManager : MonoBehaviour {
     public void Score() {
         PaddleController.instance.canMove = false;
         remainingScore--;
+        AudioManager.instance.Pop();
+
+        // If the player hit the last remaining ball
         if (remainingScore <= 0) {
-            currentBall.transform.DOScale(0, ballScaleSpeed).OnComplete(ScaleCompletePause);
             targetScore++;
             remainingScore = targetScore;
-            Debug.Log("Level complete!");
+            Debug.Log("Level " + (targetScore-1) + " complete!");
+            PaddleController.instance.ResetPaddle();
+            MoveBall();
         }
+        // If the player still has balls to hit
         else {
-            currentBall.transform.DOScale(0, ballScaleSpeed).OnComplete(ScaleComplete);
+            MoveBall();
             PaddleController.instance.SwitchPaddle();
+            PaddleController.instance.canMove = true;
         }
-        Debug.Log("Score! " + remainingScore + "/" + targetScore);
+        //Debug.Log("Score! " + remainingScore + "/" + targetScore);
         scoreText.text = remainingScore.ToString();
     }
 
     public void Lose() {
         PaddleController.instance.ResetPaddle();
-        LoseShake();
         remainingScore = targetScore;
         scoreText.text = remainingScore.ToString();
         MoveBall();
@@ -48,23 +52,6 @@ public class GameManager : MonoBehaviour {
     }
 
     // Privates
-    private void ScaleComplete() {
-        MoveBall();
-        PaddleController.instance.canMove = true;
-    }
-
-    private void ScaleCompletePause() {
-        PaddleController.instance.ResetPaddle();
-        MoveBall();
-    }
-
-    private void LoseShake() {
-        Camera.main.transform.DOShakeRotation(0.25f, 3, 50, 20, true).OnComplete(LoseShakeComplete);
-    }
-
-    private void LoseShakeComplete() {
-    }
-
     private void MoveBall() {
         paddleBuffer.GetComponent<CircleCollider2D>().enabled = true;
         currentBall.GetComponent<SpriteRenderer>().enabled = false;
@@ -73,6 +60,7 @@ public class GameManager : MonoBehaviour {
         Collider2D[] colliders = Physics2D.OverlapCircleAll(paddle.transform.position, paddleBuffer.radius);
         foreach (Collider2D collider in colliders) {
             if (collider.gameObject.tag == "Ball") {
+                //Debug.LogWarning("Moved ball inside buffer, vector: " + collider.gameObject.transform.position);
                 MoveBall();
                 return;
             }
@@ -81,6 +69,10 @@ public class GameManager : MonoBehaviour {
         paddleBuffer.GetComponent<CircleCollider2D>().enabled = false;
     }
 
+    /// <summary>
+    /// Generates a random position along a circular path.
+    /// </summary>
+    /// <returns>A Vector3 location along a circular path.</returns>
     private Vector3 RandomCirclePos() {
         float angle = Random.value * 360;
         Vector3 pos;
@@ -102,23 +94,4 @@ public class GameManager : MonoBehaviour {
         currentBall = Instantiate(ballPrefab, new Vector3(0, 0, 0), Quaternion.Euler(0, 0, 0));
         MoveBall();
     }
-
-    /*
-     * private void Spawn(GameObject prefab) {
-        GameObject obj = Instantiate(prefab, new Vector3(0, 0, 0), Quaternion.Euler(0, 0, 0)) as GameObject;
-        obj.transform.position = RandomCircle(transform.position, circle.radius);
-        obj.transform.LookAt(transform.position);
-        obj.transform.Rotate(new Vector3(1, 0, 0), 90);
-    }
-
-    private Vector3 RandomCircle (Vector3 center, float radius) {
-        float angle = Random.value * 360;
-        Vector3 pos;
-        pos.x = center.x + radius * Mathf.Sin(angle * Mathf.Deg2Rad);
-        pos.y = center.y + radius * Mathf.Cos(angle * Mathf.Deg2Rad);
-        pos.z = center.z;
-        return pos;
-    }
-    */
-
 }
